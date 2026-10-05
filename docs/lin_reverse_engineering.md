@@ -17,6 +17,18 @@ A LIN frame is sent by the master and looks like this:
 - **Classic checksum** covers the data only and is used for diagnostic frames `0x3C`/`0x3D`. **Enhanced checksum** covers the PID plus the data and is used for normal frames.
 - `0x3C` is the master diagnostic request and `0x3D` is the slave diagnostic response.
 
+## Stage 00: Relay power-up and first ID scan
+File: `00_relay_power_wakeup_bruteforce.c`
+
+- **Question:** Will the ECU answer once it has power, and on which frame ID?
+- **Method:**
+  1. A relay switches the ECU's 12 V supply on when the LIN button is pressed. The firmware then waits 2.5 s for the ECU to boot.
+  2. Probe a guessed status frame ID (`0x22`).
+  3. Send a header for every ID from `0x00` to `0x3F` and print any reply.
+  4. Switch the power off again.
+  It also has a UART loopback self-test: hold UP at boot.
+- **Result:** The guessed ID `0x22` never answered, and stage 01's log confirms it stays silent. The next stage dropped the relay and powered the ECU directly. It added a LIN wake-up pulse and a diagnostic request, and scanned several baud rates.
+
 ## Stage 01: Multi-baud scan and ID brute force
 File: `01_multi_baud_bruteforce.c`
 

@@ -24,6 +24,7 @@ Every firmware file in the private source repository is listed here. The `.c` sn
 
 | File | Stage |
 |---|---|
+| `00_relay_power_wakeup_bruteforce.c` | Relay-switched ECU power-up, guessed-ID probe and first ID scan `0x00`–`0x3F` |
 | `01_multi_baud_bruteforce.c` | Multi-baud reachability scan and full ID search `0x00`–`0x3F` |
 | `02_focused_status_polling.c` | Live status-frame polling and baseline capture |
 | `03_command_frame_discovery.c` | Controlled payload patterns to find the command frame |

@@ -13,11 +13,17 @@
 
 Physical validation of the reverse-engineered LIN control system using automotive smart window motor ECUs.
 
-### Demo 1
+![Window regulator driven over LIN by the STM32 BCM](media/demo-video/lin-window-motor-demo.gif)
+
+### Demo 1: window regulator driven UP and DOWN over LIN
+
+The STM32 BCM sends the reverse-engineered LIN command frames. The motor ECU drives the regulator carriage along its rail and stops on the neutral frame.
 
 [▶ Watch LIN Window Motor Demo 1](media/demo-video/lin-window-motor-demo-1.mp4)
 
-### Demo 2
+### Demo 2: close-up of the regulator travelling under LIN control
+
+A top-down view of the window regulator and motor ECU. The carriage moves along the full rail in response to the LIN commands.
 
 [▶ Watch LIN Window Motor Demo 2](media/demo-video/lin-window-motor-demo-2.mp4)
 
@@ -86,6 +92,7 @@ The firmware was built in stages. Every stage is kept in `firmware/reverse_engin
 
 | Stage | Goal | Outcome |
 |---|---|---|
+| 00 Relay power-up + ID scan | Switch the ECU on through a relay, probe a guessed status ID (`0x22`), then try every ID `0x00`–`0x3F` | The guessed ID never answered. Stage 01 switched to direct power, a wake-up pulse and a diagnostic request |
 | 01 Multi-baud scan | Find the bus speed and responding IDs | **19200 baud** confirmed. The diagnostic reply and status ID `0x16` were found ([log](results/lin_multi_baud_discovery_results.txt)) |
 | 02 Status polling | Watch the status frame live | Baseline status frame captured |
 | 03 Command discovery | Find which frame moves the motor | Command frame ID found |
@@ -125,7 +132,7 @@ automotive-lin-window-bcm/
 │   └── source_map.md                # What every firmware file is
 ├── firmware/
 │   ├── stm32_nucleo_f446re_project/ # ★ Buildable STM32 project (latest firmware: Core/Src/main.c)
-│   ├── reverse_engineering_stages/  # Stage 01–06 discovery firmwares
+│   ├── reverse_engineering_stages/  # Stage 00–06 discovery firmwares
 │   ├── validated_control/           # First working single-door (FL) controller
 │   └── generic_bcm/                 # Generic multi-door BCM iterations 01–04
 ├── results/
