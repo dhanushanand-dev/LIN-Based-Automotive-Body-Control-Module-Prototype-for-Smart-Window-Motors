@@ -42,7 +42,8 @@ In a car, a **Body Control Module (BCM)** is the master on a **LIN bus**. It tel
 - **Bit-level LIN master:** break, sync (`0x55`), protected ID with parity bits, and data. It supports both **classic and enhanced checksums**. Everything is written on top of the STM32 USART in LIN mode.
 - **ECU auto-detection:** it sends a LIN diagnostic *Read-By-Identifier* request (`0x3C`/`0x3D`) and identifies which door is connected from the node address in the reply.
 - **Profile table:** one `MotorProfile` per door holds the status ID, command ID, baseline status, and UP/DOWN payloads, so adding a new ECU only means adding data.
-- **Hold-to-run control:** the motor runs only while the UP/DOWN input is held. When the input is released, the firmware immediately sends a *neutral* (stop) burst.
+- **Manual (hold-to-run) control:** the motor runs only while the UP/DOWN input is held. When the input is released, the firmware immediately sends a *neutral* (stop) burst.
+- **Auto/express UP/DOWN:** implemented in the validated front-left (FL) controller. Holding the input for 5 s or more drives the window fully up or down automatically.
 - **Safety:**
   - Inputs are debounced.
   - Pressing two inputs at once forces an **immediate stop**.
@@ -56,6 +57,22 @@ In a car, a **Body Control Module (BCM)** is the master on a **LIN bus**. It tel
 - **LIN power management:** wake-up pulse, and a go-to-sleep command on `0x3C`.
 - **Status LEDs:** the LIN LED blinks while the bus is asleep and stays solid while it's awake. Separate LEDs show UP and DOWN movement.
 - **Debug console:** every frame is logged to the ST-Link virtual COM port at 115200 baud.
+
+## LIN frame map
+
+All IDs were discovered on the bench, because no OEM LDF was available.
+
+| Frame | ID | Purpose |
+|---|---|---|
+| Command | `0x15` | UP / DOWN / neutral payload, sent every 50 ms while active |
+| Status: Front Left (FL) | `0x16` | Door ECU status, used for the 1 s heartbeat |
+| Status: Front Right (FR) | `0x17` | Door ECU status, used for the 1 s heartbeat |
+| Status: Rear Left (RL) | `0x18` | Door ECU status, used for the 1 s heartbeat |
+| Status: Rear Right (RR) | `0x19` | Door ECU status, used for the 1 s heartbeat |
+| Diagnostic request | `0x3C` | Read-By-Identifier (door auto-detection) and go-to-sleep |
+| Diagnostic response | `0x3D` | Node reply used to identify FL / FR / RL / RR |
+
+Bus speed: **19.2 kbit/s** (LIN 2.x). Classic and enhanced checksums are both supported.
 
 ## Hardware
 
@@ -95,9 +112,9 @@ The firmware was built in stages. Every stage is kept in `firmware/reverse_engin
 | 00 Relay power-up + ID scan | Switch the ECU on through a relay, probe a guessed status ID (`0x22`), then try every ID `0x00`–`0x3F` | The guessed ID never answered. Stage 01 switched to direct power, a wake-up pulse and a diagnostic request |
 | 01 Multi-baud scan | Find the bus speed and responding IDs | **19200 baud** confirmed. The diagnostic reply and status ID `0x16` were found ([log](results/lin_multi_baud_discovery_results.txt)) |
 | 02 Status polling | Watch the status frame live | Baseline status frame captured |
-| 03 Command discovery | Find which frame moves the motor | Command frame ID found |
+| 03 Command discovery | Find which frame moves the motor | Command frame ID `0x15` found |
 | 04 Frame classification | Classify responses, stop and sleep behaviour | Neutral/stop and sleep handling understood |
-| 05 All-motor payloads | Find the UP/DOWN byte for each door | Payload map for FL, FR, RL, RR |
+| 05 All-motor payloads | Find the UP/DOWN byte and status ID for each door | Payload map for FL, FR, RL, RR; status IDs `0x16`–`0x19` |
 | 06 RR investigation | Confirm the rear-right UP command | Still unconfirmed, so it is **disabled in firmware** |
 
 The full write-up is in [docs/lin_reverse_engineering.md](docs/lin_reverse_engineering.md).
@@ -148,17 +165,16 @@ The firmware builds with STM32CubeIDE or with CMake and the Arm GNU toolchain. T
 - LIN protocol: frame format, PID parity, classic/enhanced checksums, diagnostic frames, wake-up and sleep
 - **Protocol reverse engineering** of undocumented automotive ECUs
 - Event-driven state machines, input debouncing, and fail-safe design
-- Automotive BCM concepts: hold-to-run, interlocks, heartbeat and loss-of-communication handling
+- Automotive BCM concepts: hold-to-run and auto/express control, interlocks, heartbeat and loss-of-communication handling
 - Bench bring-up and hardware debugging with a serial trace
 - Build systems: STM32CubeIDE and CMake cross-compilation
 
 ## Status and limitations
 
 - FL, FR and RL: UP and DOWN are mapped. RR: only DOWN is enabled, because the UP payload hasn't been physically confirmed (`ENABLE_RR_UP_COMMANDS = 0`).
-- *Auto/express* payloads were found for FL, but they are not used in the hold-to-run (PLC) build.
+- *Auto/express* control is implemented in the validated FL controller. The latest generic multi-door build (v4) uses PLC hold-to-run only.
 - This is a bench prototype and is not intended for in-vehicle use.
 
 ## Author
 
-**Dhanush Anand**: embedded systems / automotive electronics · [GitHub @dhanushanand-dev](https://github.com/dhanushanand-dev)
-<!-- Add your LinkedIn, email, or portfolio link here -->
+**Dhanush Anand**: embedded systems / automotive electronics · [GitHub @dhanushanand-dev](https://github.com/dhanushanand-dev) · [LinkedIn](https://linkedin.com/in/dhanushanand-dev)
